@@ -1,9 +1,4 @@
-Perfect 👍 Here’s a ready-to-use README.md file content for your GitHub repository — written clearly, professional, and beginner-friendly.
 
-You can copy it directly into your repo’s README.md file.
-
-
----
 
 🔋 EV Battery Health Prediction using Machine Learning
 
