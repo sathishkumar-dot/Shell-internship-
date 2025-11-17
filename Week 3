@@ -1,0 +1,130 @@
+<!-- save as ev-chat.html and open in any browser -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EV Battery Health Chat (Simple)</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#f3f4f6}
+    .container{max-width:720px;margin:36px auto;padding:16px}
+    .chat{background:#fff;border-radius:12px;padding:12px;box-shadow:0 6px 20px rgba(0,0,0,.06)}
+    .messages{height:360px;overflow:auto;padding:8px;border:1px solid #eee;border-radius:8px;background:#fafafa}
+    .msg{margin:8px 0;display:flex}
+    .msg.user{justify-content:flex-end}
+    .bubble{max-width:75%;padding:10px 12px;border-radius:12px;background:#e5e7eb}
+    .msg.user .bubble{background:#0ea5a4;color:#fff;border-radius:12px 12px 0 12px}
+    .msg.bot .bubble{background:#fff}
+    .controls{display:flex;gap:8px;margin-top:10px}
+    input[type="text"]{flex:1;padding:10px;border-radius:8px;border:1px solid #ddd}
+    button{padding:10px 14px;border-radius:8px;border:none;background:#111827;color:#fff;cursor:pointer}
+    small.note{display:block;margin-top:8px;color:#6b7280}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="chat" role="region" aria-label="EV Battery Health Chat">
+      <h2>EV Battery Health Chat (very simple)</h2>
+      <div id="messages" class="messages" aria-live="polite"></div>
+
+      <div class="controls">
+        <input id="input" type="text" placeholder="Ask about SOC / SOH / protections (e.g. 'SOC 25', 'SOH status')" />
+        <button id="send">Send</button>
+      </div>
+      <small class="note">Try: <em>SOC 85</em>, <em>SOC 10</em>, <em>SOH 92</em>, <em>help</em></small>
+    </div>
+  </div>
+
+<script>
+/*
+ Very small client-side "chat" with a simulated EV battery protection logic.
+ This is NOT a real BMS — it's educational/demo only.
+*/
+
+// DOM refs
+const msgs = document.getElementById('messages');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('send');
+
+// utility: append message
+function append(text, who='bot') {
+  const div = document.createElement('div');
+  div.className = 'msg ' + (who==='user' ? 'user' : 'bot');
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  b.textContent = text;
+  div.appendChild(b);
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// simple parser + protection rules
+function batteryResponder(text) {
+  text = text.trim().toLowerCase();
+  // help
+  if (text === 'help' || text === 'hi' || text === 'hello') {
+    return "I can simulate basic EV battery checks. Try: 'SOC 10', 'SOC 85', 'SOH 90'.\n" +
+           "Commands:\n - SOC <number>  → gives charging/discharge protection tips\n - SOH <number>  → gives health advice";
+  }
+
+  // SOC handling: "soc 85" or "soc:85" or just number
+  let socMatch = text.match(/soc[: ]?(\d{1,3})/);
+  if (!socMatch) socMatch = text.match(/^(\d{1,3})%?$/); // if user just types a number
+  if (socMatch) {
+    const soc = Math.max(0, Math.min(100, parseInt(socMatch[1],10)));
+    // basic rules (example educational thresholds)
+    if (soc >= 80) {
+      return `SOC = ${soc}% — High state of charge.\nProtection advice: Avoid leaving battery at high SOC for long periods. If parked >48h, try 50–60% for longevity.`;
+    } else if (soc >= 50) {
+      return `SOC = ${soc}% — Normal range.\nProtection advice: Safe for driving and storage. Balanced charging/discharging recommended.`;
+    } else if (soc >= 20) {
+      return `SOC = ${soc}% — Low.\nProtection advice: Plan to charge soon. Repeated deep discharges (<20%) reduce battery life.`;
+    } else {
+      return `SOC = ${soc}% — Critical low!\nProtection advice: Immediate charging recommended. Battery protection mode: limit power, reduce max current, consider limp-home behavior.`;
+    }
+  }
+
+  // SOH handling: battery health percentage
+  const sohMatch = text.match(/soh[: ]?(\d{1,3})/);
+  if (sohMatch) {
+    const soh = Math.max(0, Math.min(100, parseInt(sohMatch[1],10)));
+    if (soh >= 90) {
+      return `SOH = ${soh}% — Good health.\nAdvice: Normal monitoring, continue regular maintenance.`;
+    } else if (soh >= 75) {
+      return `SOH = ${soh}% — Acceptable but aging.\nAdvice: Monitor for capacity fade; consider gentler charge rates and avoid extreme temps.`;
+    } else {
+      return `SOH = ${soh}% — Degraded battery.\nAdvice: Consider service/inspection. Battery management should engage stronger protections and reduce max charging current to prevent damage.`;
+    }
+  }
+
+  // fallback: basic keyword responses
+  if (text.includes('protect') || text.includes('protection')) {
+    return `Typical protection measures (demo):\n - Over/under-voltage cutoffs\n - Over-current limiting\n - Thermal limits (reduce power if hot)\n - Cell balancing and SOH-based derating`;
+  }
+
+  return "Sorry, I didn't understand. Try: 'SOC 45' or 'SOH 88' or 'help'.";
+}
+
+// send handler
+function send() {
+  const txt = input.value.trim();
+  if (!txt) return;
+  append(txt, 'user');
+  input.value = '';
+  setTimeout(() => { // simulate thinking
+    const reply = batteryResponder(txt);
+    append(reply, 'bot');
+  }, 250);
+}
+
+// events
+sendBtn.addEventListener('click', send);
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); send(); }
+});
+
+// welcome
+append("Hi — ask me SOC/SOH or battery protection questions (demo). Type 'help' for examples.");
+</script>
+</body>
+</html>
